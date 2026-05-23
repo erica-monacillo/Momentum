@@ -1,4 +1,4 @@
-# 🌿 HabitTracker
+# ✅ HabitTracker
 
 A sleek, modern, and fully responsive Habit Tracking application designed to help you build better routines and stay motivated. 
 
