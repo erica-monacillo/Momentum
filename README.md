@@ -1,16 +1,23 @@
-# React + Vite
+# 🌿 HabitTracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A sleek, modern, and fully responsive Habit Tracking application designed to help you build better routines and stay motivated. 
 
-Currently, two official plugins are available:
+**🚀 Live Demo:** [https://habit-tracker-alpha-sable.vercel.app](https://habit-tracker-alpha-sable.vercel.app)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Features
 
-## React Compiler
+- **Gamification**: Earn XP and level up as you complete your daily habits!
+- **Streak Tracking**: Automatically calculates your current active streak.
+- **Daily Progress Ring**: A clean SVG circular chart showing your completion percentage for the day.
+- **Goals & Notes Notepad**: A dedicated pad to jot down your overarching goals and thoughts.
+- **Data Export & Import**: Download your tracker state as JSON, or instantly export a printable **PDF** of your dashboard.
+- **Modern UI**: Emerald Green theme, smooth animations, and dark/light mode support.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Tech Stack
 
-## Expanding the ESLint configuration
+- **Frontend**: React, Vite, Vanilla CSS
+- **Database**: Supabase (PostgreSQL)
+- **Icons**: Lucide React
+- **PDF Generation**: html2pdf.js
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+*Created for productivity and visual excellence.*
