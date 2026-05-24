@@ -1,45 +1,55 @@
 import React, { useState } from 'react';
-import { login, register } from '../utils/storage';
+import { supabase } from '../lib/supabaseClient';
 
-const Login = ({ onLogin }) => {
+const Login = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   
   // Form fields
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
       if (isLoginMode) {
-        if (!username.trim() || !password.trim()) {
-          setError('Username and Password are required.');
+        if (!email.trim() || !password.trim()) {
+          setError('Email and Password are required.');
+          setLoading(false);
           return;
         }
-        const user = await login(username.trim(), password);
-        onLogin(user);
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) throw error;
       } else {
-        if (!username.trim() || !email.trim() || !password.trim()) {
-          setError('All fields are required.');
+        if (!email.trim() || !password.trim()) {
+          setError('Email and Password are required.');
+          setLoading(false);
           return;
         }
-        const user = await register(username.trim(), email.trim(), password);
-        onLogin(user);
+        const { error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+        });
+        if (error) throw error;
       }
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
     setError('');
-    setUsername('');
     setEmail('');
     setPassword('');
   };
@@ -48,18 +58,9 @@ const Login = ({ onLogin }) => {
     <div className="container flex-center animate-fade-in" style={{ minHeight: '100vh' }}>
       <div className="card glass" style={{ width: '100%', maxWidth: '400px', textAlign: 'center', padding: '2.5rem 2rem' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <div style={{ 
-            width: '60px', height: '60px', borderRadius: '16px', 
-            background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-hover))',
-            margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)'
-          }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+          <div style={{ margin: '0 auto 1.5rem', display: 'flex', justifyContent: 'center' }}>
+            <img src="/logo.png" alt="Momentum Logo" style={{ width: '250px', height: '160px', objectFit: 'contain' }} />
           </div>
-          <h1>HabitTracker</h1>
-          <p style={{ marginTop: '0.5rem' }}>{isLoginMode ? 'Welcome back!' : 'Create your account'}</p>
         </div>
         
         {error && (
@@ -70,25 +71,14 @@ const Login = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <input 
-            type="text" 
-            placeholder="Username" 
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            type="email" 
+            placeholder="Email" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="input-field"
             required
             autoFocus
           />
-          
-          {!isLoginMode && (
-            <input 
-              type="email" 
-              placeholder="Email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-field"
-              required
-            />
-          )}
 
           <input 
             type="password" 
@@ -99,8 +89,8 @@ const Login = ({ onLogin }) => {
             required
           />
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
-            {isLoginMode ? 'Log In' : 'Create Account'}
+          <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem', opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Processing...' : (isLoginMode ? 'Log In' : 'Create Account')}
           </button>
         </form>
 
@@ -108,6 +98,7 @@ const Login = ({ onLogin }) => {
           {isLoginMode ? "Don't have an account? " : "Already have an account? "}
           <button 
             onClick={toggleMode}
+            type="button"
             style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontWeight: 600, cursor: 'pointer' }}
           >
             {isLoginMode ? 'Sign up' : 'Log in'}

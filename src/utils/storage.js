@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { getLocalDateString } from './date';
 
 const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
 
@@ -76,28 +77,48 @@ export const logout = async () => {
 };
 
 // --- DATA FETCHING & MUTATION ---
-export const getHabits = async (username) => {
-  if (!username) return [];
+export const getHabits = async (userId) => {
+  if (!userId) return [];
   
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase.from('habits').select('*').eq('username', username);
+    const { data, error } = await supabase.from('habits').select('*, habit_logs(completed_at, status)').eq('user_id', userId);
     if (error) {
       console.error(error);
       return [];
     }
-    return data || [];
+    
+    return data.map(habit => {
+      const history = {};
+      if (habit.habit_logs) {
+        habit.habit_logs.forEach(log => {
+          if (log.status) history[log.completed_at] = true;
+        });
+      }
+      
+      let streak = 0;
+      const today = new Date();
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const dateKey = getLocalDateString(d);
+        if (history[dateKey]) streak++;
+        else if (i > 0) break;
+      }
+
+      return { ...habit, history, streak };
+    }) || [];
   } else {
     const habitsStr = localStorage.getItem(HABITS_KEY);
     if (!habitsStr) return [];
     let habits = JSON.parse(habitsStr);
-    return habits.filter(h => h.username === username);
+    return habits.filter(h => h.username === userId);
   }
 };
 
-export const addHabit = async (name, username) => {
+export const addHabit = async (name, userId) => {
   const newHabit = {
     id: crypto.randomUUID(),
-    username,
+    user_id: userId,
     name,
     history: {},
     streak: 0,
@@ -105,72 +126,76 @@ export const addHabit = async (name, username) => {
   };
 
   if (isSupabaseConfigured) {
-    await supabase.from('habits').insert([newHabit]);
+    const { data, error } = await supabase.from('habits').insert([{
+      user_id: userId,
+      title: name,
+      emoji: '📝',
+      frequency: 'daily'
+    }]).select().single();
+    if (error) console.error(error);
+    return data ? { ...data, history: {}, streak: 0 } : newHabit;
   } else {
     const habitsStr = localStorage.getItem(HABITS_KEY);
     const habits = habitsStr ? JSON.parse(habitsStr) : [];
     localStorage.setItem(HABITS_KEY, JSON.stringify([...habits, newHabit]));
+    return newHabit;
   }
-  return newHabit;
 };
 
-export const toggleHabitDate = async (id, dateStr, username) => {
-  const habits = await getHabits(username);
-  const index = habits.findIndex(h => h.id === id);
-  if (index === -1) return { habits };
-
-  const habit = habits[index];
-  const history = { ...habit.history };
-
-  if (history[dateStr]) {
-    delete history[dateStr];
-  } else {
-    history[dateStr] = true;
-  }
-
-  habit.history = history;
-
-  // Streak logic (simplified for brevity)
-  let streak = 0;
-  const today = new Date();
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const dateKey = d.toISOString().split('T')[0];
-    if (history[dateKey]) streak++;
-    else if (i > 0) break;
-  }
-  habit.streak = streak;
-
+export const toggleHabitDate = async (id, dateStr, userId, isCompleted) => {
   if (isSupabaseConfigured) {
-    await supabase.from('habits').update({ history: habit.history, streak: habit.streak }).eq('id', id);
+    if (isCompleted) {
+      // Use upsert to avoid select-then-insert race conditions
+      await supabase.from('habit_logs').upsert(
+        { habit_id: id, completed_at: dateStr, status: true },
+        { onConflict: 'habit_id,completed_at' }
+      );
+    } else {
+      await supabase.from('habit_logs').delete().match({ habit_id: id, completed_at: dateStr });
+    }
+    return { success: true };
   } else {
+    const habits = await getHabits(userId);
+    const index = habits.findIndex(h => h.id === id);
+    if (index === -1) return { habits };
+
+    const habit = habits[index];
+    const history = { ...habit.history };
+
+    if (history[dateStr]) {
+      delete history[dateStr];
+    } else {
+      history[dateStr] = true;
+    }
+
+    habit.history = history;
+
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateKey = getLocalDateString(d);
+      if (history[dateKey]) streak++;
+      else if (i > 0) break;
+    }
+    habit.streak = streak;
+
     const allHabitsStr = localStorage.getItem(HABITS_KEY);
     let allHabits = allHabitsStr ? JSON.parse(allHabitsStr) : [];
     const allIndex = allHabits.findIndex(h => h.id === id);
     if (allIndex !== -1) allHabits[allIndex] = habit;
     localStorage.setItem(HABITS_KEY, JSON.stringify(allHabits));
-  }
 
-  const updatedHabits = await getHabits(username);
-  
-  // Level up logic
-  const user = await getUser();
-  if (user) {
-    user.xp = (user.xp || 0) + (history[dateStr] ? 10 : -10);
-    if (user.xp >= 100) {
-      user.level = (user.level || 1) + 1;
-      user.xp = 0;
-    }
-    await saveUser(user);
+    const updatedHabits = await getHabits(userId);
+    const user = await getUser();
+    return { habits: updatedHabits, user };
   }
-
-  return { habits: updatedHabits, user };
 };
 
-export const editHabit = async (id, newName, username) => {
+export const editHabit = async (id, newName, userId) => {
   if (isSupabaseConfigured) {
-    await supabase.from('habits').update({ name: newName }).eq('id', id);
+    await supabase.from('habits').update({ title: newName }).eq('id', id);
   } else {
     const allHabitsStr = localStorage.getItem(HABITS_KEY);
     let allHabits = allHabitsStr ? JSON.parse(allHabitsStr) : [];
@@ -180,10 +205,10 @@ export const editHabit = async (id, newName, username) => {
       localStorage.setItem(HABITS_KEY, JSON.stringify(allHabits));
     }
   }
-  return await getHabits(username);
+  return await getHabits(userId);
 };
 
-export const deleteHabit = async (id, username) => {
+export const deleteHabit = async (id, userId) => {
   if (isSupabaseConfigured) {
     await supabase.from('habits').delete().eq('id', id);
   } else {
@@ -192,31 +217,32 @@ export const deleteHabit = async (id, username) => {
     allHabits = allHabits.filter(h => h.id !== id);
     localStorage.setItem(HABITS_KEY, JSON.stringify(allHabits));
   }
-  return await getHabits(username);
+  return await getHabits(userId);
 };
 
-export const getNotes = async (username) => {
-  if (!username) return '';
+export const getNotes = async (userId) => {
+  if (!userId) return '';
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase.from('notes').select('content').eq('username', username).single();
+    // Note: notes table hasn't been updated yet in SQL schema
+    const { data, error } = await supabase.from('notes').select('content').eq('username', userId).single();
     if (error || !data) return '';
     return data.content;
   } else {
-    return localStorage.getItem('habit_tracker_general_notes_' + username) || '';
+    return localStorage.getItem('habit_tracker_general_notes_' + userId) || '';
   }
 };
 
-export const saveNotes = async (username, content) => {
-  if (!username) return;
+export const saveNotes = async (userId, content) => {
+  if (!userId) return;
   if (isSupabaseConfigured) {
-    const { data } = await supabase.from('notes').select('username').eq('username', username).single();
+    const { data } = await supabase.from('notes').select('username').eq('username', userId).single();
     if (data) {
-      await supabase.from('notes').update({ content }).eq('username', username);
+      await supabase.from('notes').update({ content }).eq('username', userId);
     } else {
-      await supabase.from('notes').insert([{ username, content }]);
+      await supabase.from('notes').insert([{ username: userId, content }]);
     }
   } else {
-    localStorage.setItem('habit_tracker_general_notes_' + username, content);
+    localStorage.setItem('habit_tracker_general_notes_' + userId, content);
   }
 };
 

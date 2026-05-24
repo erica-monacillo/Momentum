@@ -1,5 +1,16 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Check, Plus, Flame, Edit2, Trash2, X, Save } from 'lucide-react';
+import { Check, Plus, Flame, Edit2, Trash2, X, Save, Dumbbell, Code, BookOpen, Activity, Coffee, Terminal } from 'lucide-react';
+import { getLocalDateString } from '../utils/date';
+
+const getHabitIcon = (name) => {
+  const n = name.toLowerCase();
+  if (n.includes('gym') || n.includes('workout') || n.includes('exercise')) return { icon: <Dumbbell size={16} />, bg: 'bg-indigo-500/20 text-indigo-400' };
+  if (n.includes('code') || n.includes('program') || n.includes('dev')) return { icon: <Code size={16} />, bg: 'bg-emerald-500/20 text-emerald-400' };
+  if (n.includes('read') || n.includes('book')) return { icon: <BookOpen size={16} />, bg: 'bg-blue-500/20 text-blue-400' };
+  if (n.includes('water') || n.includes('drink')) return { icon: <Coffee size={16} />, bg: 'bg-cyan-500/20 text-cyan-400' };
+  if (n.includes('terminal')) return { icon: <Terminal size={16} />, bg: 'bg-yellow-500/20 text-yellow-400' };
+  return { icon: <Activity size={16} />, bg: 'bg-primary/20 text-primary' };
+};
 
 const HabitSpreadsheet = ({ habits, onToggleDate, onAdd, onEdit, onDelete }) => {
   const [newHabitName, setNewHabitName] = useState('');
@@ -20,7 +31,7 @@ const HabitSpreadsheet = ({ habits, onToggleDate, onAdd, onEdit, onDelete }) => 
 
   const startEdit = (habit) => {
     setEditingId(habit.id);
-    setEditName(habit.name);
+    setEditName(habit.title || habit.name);
   };
 
   const saveEdit = () => {
@@ -54,7 +65,7 @@ const HabitSpreadsheet = ({ habits, onToggleDate, onAdd, onEdit, onDelete }) => 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(d);
       const shortName = d.toLocaleDateString('en-US', { weekday: 'short' });
       const dayNum = d.getDate();
       const monthName = d.toLocaleDateString('en-US', { month: 'short' });
@@ -74,123 +85,124 @@ const HabitSpreadsheet = ({ habits, onToggleDate, onAdd, onEdit, onDelete }) => 
   }, [days]);
 
   return (
-    <div>
-      <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-        <h2>Habit Tracking</h2>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b border-border/50">
+        <div className="text-sm font-semibold text-primary">{monthLabel} ▾</div>
         <button 
           onClick={() => setIsAdding(!isAdding)} 
-          className="btn-icon" 
-          style={{ background: 'var(--bg-secondary)' }}
-          aria-label="Add habit"
+          className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground h-9 px-4"
         >
-          <Plus size={20} />
+          <Plus size={16} /> Add Habit
         </button>
       </div>
 
       {isAdding && (
-        <form onSubmit={handleSubmit} className="animate-fade-in card glass" style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', padding: '1rem' }}>
+        <form onSubmit={handleSubmit} className="animate-fade-in border-b border-border/50 bg-muted/20 p-4 flex gap-2">
           <input 
             type="text" 
             value={newHabitName}
             onChange={(e) => setNewHabitName(e.target.value)}
             placeholder="E.g., Drink 2L water"
-            className="input-field"
+            className="input-field max-w-sm"
             autoFocus
           />
-          <button type="submit" className="btn btn-primary">Add</button>
-          <button type="button" onClick={() => setIsAdding(false)} className="btn btn-icon">
+          <button type="submit" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4">Save</button>
+          <button type="button" onClick={() => setIsAdding(false)} className="btn-icon h-10 w-10">
             <X size={20} />
           </button>
         </form>
       )}
 
       {habits.length === 0 && !isAdding ? (
-        <div className="card glass" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-          <p style={{ marginBottom: '1rem' }}>No habits added yet.</p>
-          <button onClick={() => setIsAdding(true)} className="btn btn-primary">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <p className="text-muted-foreground mb-4">No habits added yet.</p>
+          <button onClick={() => setIsAdding(true)} className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4">
             <Plus size={18} /> Create your first habit
           </button>
         </div>
       ) : (
         habits.length > 0 && (
-          <div className="spreadsheet-container animate-fade-in">
-            <div style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'left' }}>
-              {monthLabel}
-            </div>
-            <table className="spreadsheet-table">
+          <div className="spreadsheet-container flex-1 animate-fade-in pb-4">
+            <table className="spreadsheet-table w-full">
               <thead>
                 <tr>
-                  <th>Habit</th>
+                  <th className="bg-transparent border-b border-border/50 font-semibold text-sm text-foreground">Habit</th>
                   {days.map((day, i) => (
-                    <th key={i}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{day.name}</span>
-                        <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>{day.num}</span>
+                    <th key={i} className="bg-transparent border-b border-border/50">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[11px] font-medium text-muted-foreground uppercase">{day.name}</span>
+                        <span className="text-sm font-bold text-foreground">{day.num}</span>
                       </div>
                     </th>
                   ))}
-                  <th>Streak</th>
-                  <th style={{ minWidth: '100px' }}>Actions</th>
+                  <th className="bg-transparent border-b border-border/50 font-semibold text-sm text-foreground">Streak</th>
+                  <th className="bg-transparent border-b border-border/50 font-semibold text-sm text-foreground min-w-[80px]">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {habits.map((habit) => (
-                  <tr key={habit.id}>
-                    <td>
-                      {editingId === habit.id ? (
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <input 
-                            ref={editInputRef}
-                            type="text" 
-                            className="input-field" 
-                            style={{ padding: '0.5rem', fontSize: '0.875rem' }}
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveEdit();
-                              if (e.key === 'Escape') cancelEdit();
-                            }}
-                          />
-                          <button onClick={saveEdit} className="btn-icon" style={{ color: 'var(--success)' }}><Save size={16} /></button>
-                          <button onClick={cancelEdit} className="btn-icon"><X size={16} /></button>
-                        </div>
-                      ) : (
-                        <>
-                          <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{habit.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                            {Object.keys(habit.history || {}).length} total
+                {habits.map((habit) => {
+                  const name = habit.title || habit.name;
+                  const iconData = getHabitIcon(name);
+                  return (
+                    <tr key={habit.id} className="hover:bg-muted/10 transition-colors">
+                      <td className="border-border/50 py-3">
+                        {editingId === habit.id ? (
+                          <div className="flex gap-2 items-center px-4">
+                            <input 
+                              ref={editInputRef}
+                              type="text" 
+                              className="input-field h-8 text-sm" 
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit();
+                                if (e.key === 'Escape') cancelEdit();
+                              }}
+                            />
+                            <button onClick={saveEdit} className="text-green-500 hover:text-green-400 transition-colors"><Save size={16} /></button>
+                            <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground transition-colors"><X size={16} /></button>
                           </div>
-                        </>
-                      )}
-                    </td>
-                    {days.map((day, i) => {
-                      const isCompleted = habit.history && habit.history[day.dateStr];
-                      return (
-                        <td key={i}>
-                          <button 
-                            className={`cell-button ${isCompleted ? 'active pulse' : ''}`}
-                            onClick={() => onToggleDate(habit.id, day.dateStr)}
-                            aria-label={`Toggle for ${day.dateStr}`}
-                          >
-                            <Check size={18} strokeWidth={3} />
-                          </button>
-                        </td>
-                      );
-                    })}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', color: habit.streak > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-                        <Flame size={16} />
-                        <span style={{ fontWeight: 600 }}>{habit.streak}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                         <button onClick={() => startEdit(habit)} className="btn-icon" aria-label="Edit"><Edit2 size={16} /></button>
-                         <button onClick={() => handleDelete(habit.id)} className="btn-icon" style={{ color: 'var(--danger)' }} aria-label="Delete"><Trash2 size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        ) : (
+                          <div className="flex items-center gap-3 px-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconData.bg}`}>
+                              {iconData.icon}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-sm text-foreground">{name}</span>
+                              <span className="text-[11px] text-muted-foreground">{Object.keys(habit.history || {}).length} total</span>
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      {days.map((day, i) => {
+                        const isCompleted = habit.history && habit.history[day.dateStr];
+                        return (
+                          <td key={i} className="border-border/50 text-center py-3">
+                            <button 
+                              className={`cell-button ${isCompleted ? 'active' : ''}`}
+                              onClick={() => onToggleDate(habit.id, day.dateStr)}
+                              aria-label={`Toggle for ${day.dateStr}`}
+                            >
+                              <Check size={16} strokeWidth={3} />
+                            </button>
+                          </td>
+                        );
+                      })}
+                      <td className="border-border/50 text-center py-3">
+                        <div className={`flex items-center justify-center gap-1.5 ${habit.streak > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                          <Flame size={14} />
+                          <span className="font-bold text-sm">{habit.streak}</span>
+                        </div>
+                      </td>
+                      <td className="border-border/50 text-center py-3">
+                        <div className="flex items-center justify-center gap-2">
+                           <button onClick={() => startEdit(habit)} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Edit"><Edit2 size={16} /></button>
+                           <button onClick={() => handleDelete(habit.id)} className="text-muted-foreground hover:text-destructive transition-colors" aria-label="Delete"><Trash2 size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
+import { getLocalDateString } from '../utils/date';
 
 const DailyProgress = ({ habits }) => {
   const { completed, total, percentage } = useMemo(() => {
     if (habits.length === 0) return { completed: 0, total: 0, percentage: 0 };
     
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateString(new Date());
     let comp = 0;
     
     habits.forEach(h => {

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import { getUser, logout as logoutUser } from './utils/storage';
+import ProtectedRoute from './components/ProtectedRoute';
+import AppLayout from './components/layout/AppLayout';
+import { useAuth } from './context/AuthContext';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   
   // Theme state
   const [theme, setTheme] = useState(() => {
@@ -16,8 +18,10 @@ function App() {
     // Apply theme to body
     if (theme === 'light') {
       document.body.classList.add('light-theme');
+      document.documentElement.classList.remove('dark');
     } else {
       document.body.classList.remove('light-theme');
+      document.documentElement.classList.add('dark');
     }
     localStorage.setItem('habit_tracker_theme', theme);
   }, [theme]);
@@ -26,49 +30,27 @@ function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const storedUser = await getUser();
-      if (storedUser) {
-        setUser(storedUser);
-      }
-      setLoading(false);
-    };
-    checkUser();
-  }, []);
-
-  const handleLogin = (userData) => {
-    setUser(userData);
-  };
-
-  const handleLogout = async () => {
-    await logoutUser();
-    setUser(null);
-  };
-
-  const handleUserUpdate = (updatedUser) => {
-    setUser(updatedUser);
-  };
-
-  if (loading) {
-    return <div className="container flex-center" style={{ minHeight: '100vh' }}>Loading...</div>;
-  }
-
   return (
-    <>
-      {user ? (
-        <Dashboard 
-          user={user} 
-          onLogout={handleLogout} 
-          onUserUpdate={handleUserUpdate}
-          theme={theme}
-          toggleTheme={toggleTheme}
-        />
-      ) : (
-        <Login onLogin={handleLogin} />
-      )}
-    </>
+    <Routes>
+      <Route 
+        path="/login" 
+        element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+      />
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <AppLayout theme={theme} toggleTheme={toggleTheme} />
+          </ProtectedRoute>
+        } 
+      >
+        <Route index element={<Dashboard />} />
+        {/* We can add /dashboard/habits and /dashboard/analytics here later */}
+      </Route>
+      {/* Redirect root to dashboard (or login if not authenticated) */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }
 

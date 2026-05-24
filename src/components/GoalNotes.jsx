@@ -5,28 +5,25 @@ const GoalNotes = ({ user }) => {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    if (user?.username) {
-      getNotes(user.username).then(setNotes);
+    if (user?.id) {
+      getNotes(user.id).then(setNotes);
     }
   }, [user]);
 
   const handleNotesChange = (e) => {
     const value = e.target.value;
     setNotes(value);
-    if (user?.username) {
-      saveNotes(user.username, value);
+    if (user?.id) {
+      saveNotes(user.id, value);
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', minHeight: '36px' }}>
-        <h2>Goals & Notes</h2>
-      </div>
-      <div className="card glass animate-fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
+    <div className="flex flex-col h-full space-y-4">
+      <div className="flex-1 flex flex-col">
         <textarea
           placeholder="Write down your overarching goals, thoughts, or daily notes here..."
-          style={{ flex: 1, resize: 'none', minHeight: '200px', border: 'none', background: 'transparent', outline: 'none', padding: '0.5rem', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.875rem' }}
+          className="flex-1 min-h-[200px] w-full resize-none border-0 bg-transparent p-0 text-sm focus-visible:outline-none"
           value={notes}
           onChange={handleNotesChange}
         />
