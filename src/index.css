@@ -1,7 +1,7 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import "tw-animate-css";
 @import "@fontsource-variable/geist";
+@import "tw-animate-css";
+@import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -208,4 +208,22 @@
   border-color: var(--primary);
   color: var(--primary-foreground);
   box-shadow: 0 0 10px rgba(110, 86, 207, 0.3);
+}
+
+/* Custom Scrollbar for Spreadsheet Container */
+.spreadsheet-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.spreadsheet-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.spreadsheet-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.spreadsheet-container::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
 }

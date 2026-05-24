@@ -19,6 +19,58 @@ const HabitSpreadsheet = ({ habits, onToggleDate, onAdd, onEdit, onDelete }) => 
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const editInputRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Generate the current calendar month days
+  const days = useMemo(() => {
+    const dArray = [];
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i);
+      const dateStr = getLocalDateString(d);
+      const shortName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNum = d.getDate();
+      const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+      dArray.push({ name: shortName, num: dayNum, dateStr, monthName });
+    }
+    return dArray;
+  }, []);
+
+  const monthLabel = useMemo(() => {
+    if (days.length === 0) return '';
+    const firstMonth = days[0].monthName;
+    const lastMonth = days[days.length - 1].monthName;
+    if (firstMonth === lastMonth) {
+      return firstMonth;
+    }
+    return `${firstMonth} / ${lastMonth}`;
+  }, [days]);
+
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!hasScrolled && habits.length > 0 && containerRef.current) {
+      const todayStr = getLocalDateString(new Date());
+      // Give a slight delay to ensure DOM is fully rendered
+      const timeout = setTimeout(() => {
+        const todayEl = document.getElementById(`day-col-${todayStr}`);
+        if (todayEl && containerRef.current) {
+          // Center the current date column
+          const containerWidth = containerRef.current.clientWidth;
+          const stickyWidth = 220; // Width of the sticky left column
+          const scrollLeft = todayEl.offsetLeft - stickyWidth - (containerWidth - stickyWidth) / 2 + (todayEl.clientWidth / 2);
+          
+          containerRef.current.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
+          setHasScrolled(true);
+        }
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [days, habits.length, hasScrolled]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -58,31 +110,7 @@ const HabitSpreadsheet = ({ habits, onToggleDate, onAdd, onEdit, onDelete }) => 
     }
   }, [editingId]);
 
-  // Generate the last 7 days
-  const days = useMemo(() => {
-    const dArray = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const dateStr = getLocalDateString(d);
-      const shortName = d.toLocaleDateString('en-US', { weekday: 'short' });
-      const dayNum = d.getDate();
-      const monthName = d.toLocaleDateString('en-US', { month: 'short' });
-      dArray.push({ name: shortName, num: dayNum, dateStr, monthName });
-    }
-    return dArray;
-  }, []);
 
-  const monthLabel = useMemo(() => {
-    if (days.length === 0) return '';
-    const firstMonth = days[0].monthName;
-    const lastMonth = days[days.length - 1].monthName;
-    if (firstMonth === lastMonth) {
-      return firstMonth;
-    }
-    return `${firstMonth} / ${lastMonth}`;
-  }, [days]);
 
   return (
     <div className="flex flex-col h-full">
@@ -122,13 +150,13 @@ const HabitSpreadsheet = ({ habits, onToggleDate, onAdd, onEdit, onDelete }) => 
         </div>
       ) : (
         habits.length > 0 && (
-          <div className="spreadsheet-container flex-1 animate-fade-in pb-4">
+          <div ref={containerRef} className="spreadsheet-container flex-1 animate-fade-in pb-4 overflow-x-auto w-full relative">
             <table className="spreadsheet-table w-full">
               <thead>
                 <tr>
                   <th className="bg-transparent border-b border-border/50 font-semibold text-sm text-foreground">Habit</th>
                   {days.map((day, i) => (
-                    <th key={i} className="bg-transparent border-b border-border/50">
+                    <th key={i} id={`day-col-${day.dateStr}`} className="bg-transparent border-b border-border/50">
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-[11px] font-medium text-muted-foreground uppercase">{day.name}</span>
                         <span className="text-sm font-bold text-foreground">{day.num}</span>

@@ -9,6 +9,8 @@ const NotificationBell = ({ userId }) => {
   const [notifications, setNotifications] = useState([]);
   const menuRef = useRef(null);
 
+  const [hasSeenUnread, setHasSeenUnread] = useState(false);
+
   useEffect(() => {
     if (!userId) return;
     getHabits(userId).then(habits => {
@@ -48,6 +50,11 @@ const NotificationBell = ({ userId }) => {
         });
       }
 
+      // If notifications change to empty, reset the seen status so future notifications show the dot
+      if (notifs.length > 0 && notifs[0].id === 'empty') {
+        setHasSeenUnread(false);
+      }
+
       setNotifications(notifs);
     });
   }, [userId, isOpen]); // refresh when opened
@@ -62,12 +69,15 @@ const NotificationBell = ({ userId }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const hasUnread = notifications.length > 0 && notifications[0].id !== 'empty';
+  const hasUnread = !hasSeenUnread && notifications.length > 0 && notifications[0].id !== 'empty';
 
   return (
     <div className="relative" ref={menuRef}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) setHasSeenUnread(true);
+        }}
         className="inline-flex items-center justify-center rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground relative"
         title="Notifications"
       >
