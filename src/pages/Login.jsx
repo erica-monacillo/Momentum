@@ -55,7 +55,7 @@ const Login = () => {
   };
 
   return (
-    <div className="container flex-center animate-fade-in" style={{ minHeight: '100vh' }}>
+    <div className="flex items-center justify-center w-full min-h-screen bg-background p-4 animate-fade-in">
       <div className="card glass" style={{ width: '100%', maxWidth: '400px', textAlign: 'center', padding: '2.5rem 2rem' }}>
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ margin: '0 auto 1.5rem', display: 'flex', justifyContent: 'center' }}>
