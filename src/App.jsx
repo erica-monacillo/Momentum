@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -8,6 +8,7 @@ import { useAuth } from './context/AuthContext';
 
 function App() {
   const { user } = useAuth();
+  const location = useLocation();
   
   // Theme state
   const [theme, setTheme] = useState(() => {
@@ -15,16 +16,22 @@ function App() {
   });
 
   useEffect(() => {
+    const isLogin = location.pathname === '/login';
+    const effectiveTheme = isLogin ? 'light' : theme;
+
     // Apply theme to body
-    if (theme === 'light') {
+    if (effectiveTheme === 'light') {
       document.body.classList.add('light-theme');
       document.documentElement.classList.remove('dark');
     } else {
       document.body.classList.remove('light-theme');
       document.documentElement.classList.add('dark');
     }
-    localStorage.setItem('habit_tracker_theme', theme);
-  }, [theme]);
+    
+    if (!isLogin) {
+      localStorage.setItem('habit_tracker_theme', theme);
+    }
+  }, [theme, location.pathname]);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
